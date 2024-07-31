@@ -10,7 +10,7 @@ export default function Page({ params }: { params: { id: string } }) {
     return (
         <>
             <div>
-                <ProfileImg src={session.data?.user.image}/>
+                <ProfileImg id={params.id} src={session.data?.user.image}/>
                 <h1>Name: {session.data?.user.name}</h1>
                 <h1>E-Mail: {session.data?.user.email}</h1>
             </div>
