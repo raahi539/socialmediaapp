@@ -8,6 +8,7 @@ await import("./src/env.js");
 const config = {
     images: {domains: [
         "lh3.googleusercontent.com",
+        "cdn.pixabay.com",
     ]}
 };
 
