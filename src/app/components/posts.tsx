@@ -1,7 +1,9 @@
-"use client";
-import ProfileImg from './profifle';
+"use client"
+import { useState } from 'react';
+import ProfileImg from './profile';
 import Button from './button';
-import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
 
 type User = {
     id: string;
@@ -9,42 +11,109 @@ type User = {
     image: string;
 };
 
+type Comment = {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: User;
+};
+
 type Post = {
     id: string;
     userId: string;
     name: string;
     createdBy: User;
+    likes: number;
+    views: number;
+    isLiked: boolean;
+    comments: Comment[];
 };
 
 export default function PostsList() {
+    const { data: session } = useSession();
     const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);    
+
+    async function fetchPosts() {
+        try {
+            const response = await fetch('/api/posts');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch posts: ${response.status} ${response.statusText}`);
+            }
+            const data: Post[] = await response.json();
+    
+            const postsWithDetails = await Promise.all(
+                data.map(async post => {
+                    const likesResponse = await fetch(`/api/posts/likes/${post.id}`);
+                    const commentsResponse = await fetch(`/api/posts/comments/${post.id}`);
+    
+                    if (!likesResponse.ok || !commentsResponse.ok) {
+                        throw new Error(`Failed to fetch likes or comments for post ${post.id}`);
+                    }
+    
+                    const likesData: { userId: string }[] = await likesResponse.json();
+                    const commentsData: Comment[] = await commentsResponse.json();
+    
+                    return {
+                        ...post,
+                        likes: likesData.length,
+                        isLiked: likesData.some(like => like.userId === session?.user?.id),
+                        comments: commentsData, // Add comments to the post
+                    };
+                })
+            );
+            setPosts(postsWithDetails);
+    
+        } catch (error) {
+            console.error('Error fetching posts or likes/comments:', error);
+            // Handle error gracefully in your UI
+        } finally {
+            setLoading(false);
+        }
+    }
+    
 
     useEffect(() => {
-        async function fetchPosts() {
-            try {
-                const response = await fetch('/api/posts', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch posts');
-                }
-
-                const data: Post[] = await response.json();
-                setPosts(data);
-            } catch (error) {
-                console.error('Error fetching posts:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
         fetchPosts();
-    }, []);
+    }, [session?.user?.id]);
+
+    async function toggleLike(postId: string) {
+        const isCurrentlyLiked = posts.find(post => post.id === postId)?.isLiked || false;
+        setPosts(prevPosts => prevPosts.map(post =>
+            post.id === postId ? { ...post, isLiked: !isCurrentlyLiked, likes: post.likes + (isCurrentlyLiked ? -1 : 1) } : post
+        ));
+        try {
+            const method = isCurrentlyLiked ? 'DELETE' : 'POST';
+            const response = await fetch(`/api/posts/likes/${postId}`, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: session?.user?.id })
+            });
+            if (!response.ok) {
+                fetchPosts();
+            }
+        } catch (error) {
+            console.error('Error updating like:', error);
+            fetchPosts();
+        }
+    }
+
+    async function addComment(postId: string, content: string) {
+        if (!content.trim()) return;
+        try {
+            const response = await fetch(`/api/posts/comments/${postId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: session?.user?.id, content })
+            });
+            if (!response.ok) {
+                throw new Error('Failed to add comment');
+            }
+            fetchPosts();
+        } catch (error) {
+            console.error('Error adding comment:', error);
+        }
+    }
 
     if (loading) return <p>Loading...</p>;
 
@@ -60,26 +129,99 @@ export default function PostsList() {
                     <hr></hr>
                     <div className='flex flex-row'>
                         <div className='flex items-center'>
-                            <svg width="50px" height="50px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6.00019C10.2006 3.90317 7.19377 3.2551 4.93923 5.17534C2.68468 7.09558 2.36727 10.3061 4.13778 12.5772C5.60984 14.4654 10.0648 18.4479 11.5249 19.7369C11.6882 19.8811 11.7699 19.9532 11.8652 19.9815C11.9483 20.0062 12.0393 20.0062 12.1225 19.9815C12.2178 19.9532 12.2994 19.8811 12.4628 19.7369C13.9229 18.4479 18.3778 14.4654 19.8499 12.5772C21.6204 10.3061 21.3417 7.07538 19.0484 5.17534C16.7551 3.2753 13.7994 3.90317 12 6.00019Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <svg
+                                width="50px"
+                                height="50px"
+                                viewBox="0 0 24 24"
+                                fill={post.isLiked ? 'red' : 'none'}
+                                xmlns="http://www.w3.org/2000/svg"
+                                onClick={() => toggleLike(post.id)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <path
+                                    fillRule="evenodd"
+                                    clipRule="evenodd"
+                                    d="M12 6.00019C10.2006 3.90317 7.19377 3.2551 4.93923 5.17534C2.68468 7.09558 2.36727 10.3061 4.13778 12.5772C5.60984 14.4654 10.0648 18.4479 11.5249 19.7369C11.6882 19.8811 11.7699 19.9532 11.8652 19.9815C11.9483 20.0062 12.0393 20.0062 12.1225 19.9815C12.2178 19.9532 12.2994 19.8811 12.4628 19.7369C13.9229 18.4479 18.3778 14.4654 19.8499 12.5772C21.6204 10.3061 21.3417 7.07538 19.0484 5.17534C16.7551 3.2753 13.7994 3.90317 12 6.00019Z"
+                                    stroke="#000000"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
                             </svg>
-                            <h1>0</h1>
-                            <svg width="50px" height="50px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M15.0007 12C15.0007 13.6569 13.6576 15 12.0007 15C10.3439 15 9.00073 13.6569 9.00073 12C9.00073 10.3431 10.3439 9 12.0007 9C13.6576 9 15.0007 10.3431 15.0007 12Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="M12.0012 5C7.52354 5 3.73326 7.94288 2.45898 12C3.73324 16.0571 7.52354 19 12.0012 19C16.4788 19 20.2691 16.0571 21.5434 12C20.2691 7.94291 16.4788 5 12.0012 5Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            <h1>1</h1>
+                            <h1>{(typeof post.likes) == "number" ? post.likes : 0}</h1>
                         </div>
-                        <form className='flex flex-grow p-2 h-16'>
+                        <form 
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const formData = new FormData(e.currentTarget);
+                                const content = formData.get('content') as string;
+                                addComment(post.id, content);
+                                e.currentTarget.reset();
+                            }}
+                            className="flex flex-grow p-2 h-16"
+                        >
                             <textarea
+                                name="content"
                                 className="flex-grow resize-none overflow-hidden p-4 text-lg"
                                 placeholder="What's happening?"
                             />
-                            <Button>Comment</Button>
+                            <Button type="submit">Comment</Button>
                         </form>
                     </div>
+
+                    {/* Comment Drawer */}
+                    <CommentDrawer comments={post.comments} />
                 </div>
             ))}
+        </div>
+    );
+}
+
+function CommentDrawer({ comments }: { comments: Comment[] }) {
+    const [showAll, setShowAll] = useState(false);
+
+    const toggleShowAll = () => setShowAll(!showAll);
+
+    if (!comments || comments.length === 0) {
+        return <p className="text-gray-500">No comments yet.</p>;
+    }
+
+    return (
+        <div className="p-4">
+            {comments.length > 0 ? (
+                <>
+                    <div className="border-t pt-2">
+                        <div className="flex items-center space-x-2">
+                            <ProfileImg id={comments[0].user.id} src={comments[0].user.image} />
+                            <div>
+                                <p className="font-bold">{comments[0].user.name}</p>
+                                <p>{comments[0].content}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {showAll && comments.slice(1).map(comment => (
+                        <div key={comment.id} className="border-t pt-2">
+                            <div className="flex items-center space-x-2">
+                                <ProfileImg id={comment.user.id} src={comment.user.image} />
+                                <div>
+                                    <p className="font-bold">{comment.user.name}</p>
+                                    <p>{comment.content}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {comments.length > 1 && (
+                        <button
+                            onClick={toggleShowAll}
+                            className="text-blue-500 underline mt-2"
+                        >
+                            {showAll ? 'Show Less' : `Show All ${comments.length} Comments`}
+                        </button>
+                    )}
+                </>
+            ) : (
+                <p className="text-gray-500">No comments yet.</p>
+            )}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 "use client"
 import { useSession } from "next-auth/react"
 import PostsList from "~/app/components/posts"
-import ProfileImg from "~/app/components/profifle"
+import ProfileImg from "~/app/components/profile"
 
 
 

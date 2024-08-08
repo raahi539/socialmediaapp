@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import Button from './button';
-import ProfileImg from './profifle';
+import ProfileImg from './profile';
 import { useState } from 'react';
 
 export default function TweetForm() {
