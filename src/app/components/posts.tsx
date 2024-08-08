@@ -177,35 +177,37 @@ export default function PostsList() {
     );
 }
 
-function CommentDrawer({ comments }: { comments: Comment[] }) {
+function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
     const [showAll, setShowAll] = useState(false);
 
     const toggleShowAll = () => setShowAll(!showAll);
 
-    if (!comments || comments.length === 0) {
+    if (comments.length === 0) {
         return <p className="text-gray-500">No comments yet.</p>;
     }
 
     return (
         <div className="p-4">
-            {comments.length > 0 ? (
+            {comments.length > 0 && (
                 <>
                     <div className="border-t pt-2">
                         <div className="flex items-center space-x-2">
-                            <ProfileImg id={comments[0].user.id} src={comments[0].user.image} />
+                            {/* Ensure comments[0].user and comments[0].user.id are defined */}
+                            <ProfileImg id={comments[0]?.user?.id || ''} src={comments[0]?.user?.image || ''} />
                             <div>
-                                <p className="font-bold">{comments[0].user.name}</p>
-                                <p>{comments[0].content}</p>
+                                <p className="font-bold">{comments[0]?.user?.name || 'Unknown'}</p>
+                                <p>{comments[0]?.content || ''}</p>
                             </div>
                         </div>
                     </div>
                     {showAll && comments.slice(1).map(comment => (
                         <div key={comment.id} className="border-t pt-2">
                             <div className="flex items-center space-x-2">
-                                <ProfileImg id={comment.user.id} src={comment.user.image} />
+                                {/* Ensure comment.user and comment.user.id are defined */}
+                                <ProfileImg id={comment.user?.id || ''} src={comment.user?.image || ''} />
                                 <div>
-                                    <p className="font-bold">{comment.user.name}</p>
-                                    <p>{comment.content}</p>
+                                    <p className="font-bold">{comment.user?.name || 'Unknown'}</p>
+                                    <p>{comment.content || ''}</p>
                                 </div>
                             </div>
                         </div>
@@ -219,9 +221,8 @@ function CommentDrawer({ comments }: { comments: Comment[] }) {
                         </button>
                     )}
                 </>
-            ) : (
-                <p className="text-gray-500">No comments yet.</p>
             )}
         </div>
     );
 }
+
