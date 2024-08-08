@@ -32,7 +32,7 @@ type Post = {
 export default function PostsList() {
     const { data: session } = useSession();
     const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);    
+    const [loading, setLoading] = useState(true);
 
     async function fetchPosts() {
         try {
@@ -41,19 +41,19 @@ export default function PostsList() {
                 throw new Error(`Failed to fetch posts: ${response.status} ${response.statusText}`);
             }
             const data: Post[] = await response.json();
-    
+
             const postsWithDetails = await Promise.all(
                 data.map(async post => {
                     const likesResponse = await fetch(`/api/posts/likes/${post.id}`);
                     const commentsResponse = await fetch(`/api/posts/comments/${post.id}`);
-    
+
                     if (!likesResponse.ok || !commentsResponse.ok) {
                         throw new Error(`Failed to fetch likes or comments for post ${post.id}`);
                     }
-    
+
                     const likesData: { userId: string }[] = await likesResponse.json();
                     const commentsData: Comment[] = await commentsResponse.json();
-    
+
                     return {
                         ...post,
                         likes: likesData.length,
@@ -63,7 +63,7 @@ export default function PostsList() {
                 })
             );
             setPosts(postsWithDetails);
-    
+
         } catch (error) {
             console.error('Error fetching posts or likes/comments:', error);
             // Handle error gracefully in your UI
@@ -71,7 +71,7 @@ export default function PostsList() {
             setLoading(false);
         }
     }
-    
+
 
     useEffect(() => {
         fetchPosts();
@@ -118,25 +118,26 @@ export default function PostsList() {
     if (loading) return <p>Loading...</p>;
 
     return (
-        <div>
+        <div className="container mx-auto px-4">
             {posts.map(post => (
-                <div key={post.id} className="border-b p-4">
-                    <div className="flex items-center">
-                        <ProfileImg id={post.userId} src={post.createdBy.image} />
-                        <h1 className='font-bold px-2'>{post.createdBy.name}</h1>
+                <div key={post.id} className="border-b p-4 flex flex-col space-y-4 md:space-y-0 md:flex-row md:space-x-4">
+                    <div className="flex items-center space-x-4">
+                        <ProfileImg id={post.userId} src={post.createdBy.image} className="w-12 h-12" />
+                        <div>
+                            <h1 className='font-bold text-lg'>{post.createdBy.name}</h1>
+                            <h2 className='text-sm text-gray-600'>{post.name}</h2>
+                        </div>
                     </div>
-                    <h1 className='p-2'>{post.name}</h1>
-                    <hr></hr>
-                    <div className='flex flex-row'>
-                        <div className='flex items-center'>
+                    <div className='flex flex-col space-y-2'>
+                        <div className='flex items-center space-x-2'>
                             <svg
-                                width="50px"
-                                height="50px"
+                                width="24px"
+                                height="24px"
                                 viewBox="0 0 24 24"
                                 fill={post.isLiked ? 'red' : 'none'}
                                 xmlns="http://www.w3.org/2000/svg"
                                 onClick={() => toggleLike(post.id)}
-                                style={{ cursor: 'pointer' }}
+                                className="cursor-pointer"
                             >
                                 <path
                                     fillRule="evenodd"
@@ -148,9 +149,9 @@ export default function PostsList() {
                                     strokeLinejoin="round"
                                 />
                             </svg>
-                            <h1>{(typeof post.likes) == "number" ? post.likes : 0}</h1>
+                            <h1 className="text-sm">{post.likes}</h1>
                         </div>
-                        <form 
+                        <form
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 const formData = new FormData(e.currentTarget);
@@ -158,14 +159,14 @@ export default function PostsList() {
                                 addComment(post.id, content);
                                 e.currentTarget.reset();
                             }}
-                            className="flex flex-grow p-2 h-16"
+                            className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4"
                         >
                             <textarea
                                 name="content"
-                                className="flex-grow resize-none overflow-hidden p-4 text-lg"
+                                className="flex-grow resize-none overflow-hidden p-2 text-base"
                                 placeholder="What's happening?"
                             />
-                            <Button type="submit">Comment</Button>
+                            <Button type="submit" className="w-full md:w-auto">Comment</Button>
                         </form>
                     </div>
 
@@ -177,6 +178,7 @@ export default function PostsList() {
     );
 }
 
+
 function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
     const [showAll, setShowAll] = useState(false);
 
@@ -187,27 +189,25 @@ function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
     }
 
     return (
-        <div className="p-4">
+        <div className="p-4 space-y-4">
             {comments.length > 0 && (
                 <>
                     <div className="border-t pt-2">
                         <div className="flex items-center space-x-2">
-                            {/* Ensure comments[0].user and comments[0].user.id are defined */}
-                            <ProfileImg id={comments[0]?.user?.id || ''} src={comments[0]?.user?.image || ''} />
+                            <ProfileImg id={comments[0]?.user?.id || ''} src={comments[0]?.user?.image || ''} className="w-10 h-10" />
                             <div>
-                                <p className="font-bold">{comments[0]?.user?.name || 'Unknown'}</p>
-                                <p>{comments[0]?.content || ''}</p>
+                                <p className="font-bold text-sm">{comments[0]?.user?.name || 'Unknown'}</p>
+                                <p className="text-sm">{comments[0]?.content || ''}</p>
                             </div>
                         </div>
                     </div>
                     {showAll && comments.slice(1).map(comment => (
                         <div key={comment.id} className="border-t pt-2">
                             <div className="flex items-center space-x-2">
-                                {/* Ensure comment.user and comment.user.id are defined */}
-                                <ProfileImg id={comment.user?.id || ''} src={comment.user?.image || ''} />
+                                <ProfileImg id={comment.user?.id || ''} src={comment.user?.image || ''} className="w-10 h-10" />
                                 <div>
-                                    <p className="font-bold">{comment.user?.name || 'Unknown'}</p>
-                                    <p>{comment.content || ''}</p>
+                                    <p className="font-bold text-sm">{comment.user?.name || 'Unknown'}</p>
+                                    <p className="text-sm">{comment.content || ''}</p>
                                 </div>
                             </div>
                         </div>
@@ -215,7 +215,7 @@ function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
                     {comments.length > 1 && (
                         <button
                             onClick={toggleShowAll}
-                            className="text-blue-500 underline mt-2"
+                            className="text-blue-500 underline mt-2 text-sm"
                         >
                             {showAll ? 'Show Less' : `Show All ${comments.length} Comments`}
                         </button>
@@ -225,4 +225,5 @@ function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
         </div>
     );
 }
+
 
