@@ -122,7 +122,7 @@ export default function PostsList() {
             {posts.map(post => (
                 <div key={post.id} className="border-b p-4 flex flex-col space-y-4 md:space-y-0 md:flex-row md:space-x-4">
                     <div className="flex items-center space-x-4">
-                        <ProfileImg id={post.userId} src={post.createdBy.image} className="w-12 h-12" />
+                        <ProfileImg id={post.userId} src={post.createdBy.image}  />
                         <div>
                             <h1 className='font-bold text-lg'>{post.createdBy.name}</h1>
                             <h2 className='text-sm text-gray-600'>{post.name}</h2>
@@ -194,7 +194,7 @@ function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
                 <>
                     <div className="border-t pt-2">
                         <div className="flex items-center space-x-2">
-                            <ProfileImg id={comments[0]?.user?.id || ''} src={comments[0]?.user?.image || ''} className="w-10 h-10" />
+                            <ProfileImg id={comments[0]?.user?.id || ''} src={comments[0]?.user?.image || ''} />
                             <div>
                                 <p className="font-bold text-sm">{comments[0]?.user?.name || 'Unknown'}</p>
                                 <p className="text-sm">{comments[0]?.content || ''}</p>
@@ -204,7 +204,7 @@ function CommentDrawer({ comments = [] }: { comments?: Comment[] }) {
                     {showAll && comments.slice(1).map(comment => (
                         <div key={comment.id} className="border-t pt-2">
                             <div className="flex items-center space-x-2">
-                                <ProfileImg id={comment.user?.id || ''} src={comment.user?.image || ''} className="w-10 h-10" />
+                                <ProfileImg id={comment.user?.id || ''} src={comment.user?.image || ''} />
                                 <div>
                                     <p className="font-bold text-sm">{comment.user?.name || 'Unknown'}</p>
                                     <p className="text-sm">{comment.content || ''}</p>
