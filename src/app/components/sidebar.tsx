@@ -10,7 +10,7 @@ export default function Sidebar() {
 
     return (
         <nav className="sticky top-0 self-start px-3 py-4 text-white bg-stone-900 min-h-screen">
-            Social Media App
+            TrueKonnekt
             <hr />
             <ul className="flex flex-col">
                 <li className="py-2">
