@@ -13,7 +13,7 @@ export default function RootLayout({
       <SessionProvider>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
-          <title>Social Media App</title>
+          <title>TrueKonnekt</title>
         </head>
         <body className="container w-screen flex">
           <Sidebar />
