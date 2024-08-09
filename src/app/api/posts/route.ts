@@ -4,31 +4,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function POST(req: NextRequest) {
-    const { userId, name } = await req.json();
-
-    if (!userId || !name) {
-        return NextResponse.json({ error: 'Missing userId or name' }, { status: 400 });
-    }
-
-    try {
-        const post = await prisma.post.create({
-            data: {
-                userId: userId,
-                name: name,
-            },
-        });
-        console.log('Post created:', post); // Log the post object
-        return NextResponse.json(post, { status: 201 });
-    } catch (error) {
-        console.error('Error creating post:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-    }
-}
-
 export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+
     try {
         const posts = await prisma.post.findMany({
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: {
+                createdAt: 'desc',
+            },
             include: {
                 createdBy: {
                     select: {
@@ -38,7 +25,15 @@ export async function GET(req: NextRequest) {
                 },
             },
         });
-        return NextResponse.json(posts, { status: 200 });
+
+        const totalPosts = await prisma.post.count();
+
+        return NextResponse.json({
+            posts,
+            totalPosts,
+            totalPages: Math.ceil(totalPosts / limit),
+            currentPage: page,
+        }, { status: 200 });
     } catch (error) {
         console.error('Error fetching posts:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
